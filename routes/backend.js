@@ -6,6 +6,7 @@ const nodemailer=require("nodemailer");
 var otpGenerator=require('otp-generator');
 process.env.Node_TLS_REJECT_UNAUTHORIZED="0";
 var sec;
+
 const RandomString=(length)=>{
   let text="";
   const possible="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789";
@@ -367,7 +368,7 @@ router.post('/changepassword',function(req,res,next){
 })
 router.post('/addoffer',multer.single('pic'),function(req,res,next){
   console.log(req.body)
-  pool.query('insert into offer values(?,?,?,?,?,?,?,?,?,?,?,?,?)',[req.body.subcategoryid,req.body.id,req.body.name,req.body.categoryid,req.body.tag1,req.body.tag2,req.body.tag3,req.body.description,req.file.originalname,req.body.validfrom,req.body.validto,req.body.city,req.body.tag4],function(error,result){
+  pool.query('insert into offer values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[req.body.subcategoryid,req.body.id,req.body.name,req.body.categoryid,req.body.tag1,req.body.tag2,req.body.tag3,req.body.description,req.file.originalname,req.body.validfrom,req.body.validto,req.body.city,req.body.tag4,req.body.location,0],function(error,result){
     if(error)
     {
       console.log(error)
@@ -380,7 +381,10 @@ router.post('/addoffer',multer.single('pic'),function(req,res,next){
   })
 })
 
-router.get('/calloffer',function(req,res,next){
+
+
+router.get('/calloffer',function(req,res,next){  
+  offerCheck();
   pool.query('select * from offer',function(error,result){
     if(error)
     {
@@ -389,7 +393,15 @@ router.get('/calloffer',function(req,res,next){
     }
     else
     {
-      return res.status(200).json(result)
+      var rresult=[]
+      for(var i in result)
+      {
+        if(result[i].start==1)
+        {
+          rresult=[...rresult,result[i]]
+        }
+      }
+      return res.status(200).json(rresult)
     }   
   })
 })
@@ -422,7 +434,8 @@ router.post('/callSName',function(req,res,next){
   })
 })
 
-router.post('/offerpageinfo',function(req,res,next){
+router.post('/offerpageinfo',function(req,res,next){  
+  offerCheck();
   pool.query('select * from offer where name=?',[req.body.name],function(error,result){
     if(error)
     {
@@ -431,12 +444,21 @@ router.post('/offerpageinfo',function(req,res,next){
     }
     else
     {
-      return res.status(200).json(result);
+      var rresult=[]
+      for(var i in result)
+      {
+        if(result[i].start==1)
+        {
+          rresult=[...rresult,result[i]]
+        }
+      }
+      return res.status(200).json(rresult);
     }
   })
 })
 
-router.post('/categorypageinfo',function(req,res,next){
+router.post('/categorypageinfo',function(req,res,next){  
+  offerCheck();
   pool.query('select id from category where name=?',[req.body.name],function(error,result){
   if(error)
   {
@@ -452,7 +474,15 @@ router.post('/categorypageinfo',function(req,res,next){
   }
   else
   {
-    return res.status(200).json(result);
+    var rresult=[]
+    for(var i in result)
+    {
+      if(result[i].start==1)
+      {
+        rresult=[...rresult,result[i]]
+      }
+    }
+    return res.status(200).json(rresult);
   }
 })
 }
@@ -487,7 +517,8 @@ router.get('/customerinfo',function(req,res,next){
   })
 })
 
-router.get('/callcarouseloffer',function(req,res,next){
+router.get('/callcarouseloffer',function(req,res,next){  
+  offerCheck();
   pool.query('select * from offer order by id desc limit 5',function(error,result){
     if(error)
     {
@@ -496,13 +527,94 @@ router.get('/callcarouseloffer',function(req,res,next){
     }
     else
     {
-      return res.status(200).json(result)
+      var rresult=[]
+      for(var i in result)
+      {
+        if(result[i].start==1)
+        {
+          rresult=[...rresult,result[i]]
+        }
+      }
+      return res.status(200).json(rresult)
     }   
   })
 })
-
-router.post('/practice',function(req,res,next){
-  console.log("Data:",req.body)
+function offerCheck(){
+  pool.query('select * from offer',function(error,result){
+    if(error)
+    {
+      console.log(error);
+    }
+    else
+    {
+      for(var i in result)
+      {
+        var v=parseInt(result[i].validto)
+        var b=parseInt(result[i].validfrom)
+        if(b<=new Date().getTime() && result[i].start!=1)
+        {
+          pool.query('update offer set start=1 where id=?',[result[i].id],function(error,result){
+            if(error)
+            {
+              console.log("no")
+            }
+            else
+            {
+              console.log("yes")
+            }
+          })
+        }
+        if(v<new Date().getTime())
+        {
+          pool.query('delete from offer where id=?',[result[i].id],function(error,result){
+            if(error)
+            {
+              console.log("no")
+            }
+            else
+            {
+              console.log("yes")
+            }
+          })
+        }
+      }
+    }   
+  })
+}
+router.post('/searchresult',function(req,res,next){  
+  offerCheck();
+  pool.query('select * from offer where id=?',[req.body.id],function(error,result){
+    if(error)
+    {
+      console.log(error)
+      return res.status(500).json({RESULT:false})
+    }
+    else
+    {
+      var rresult=[]
+      for(var i in result)
+      {
+        if(result[i].start==1)
+        {
+          rresult=[...rresult,result[i]]
+        }
+      }
+      return res.status(200).json(rresult)
+    }
+  })
 })
-
-module.exports = router;
+router.post('/search',function(req,res,next){
+  console.log("JKL",req.body)
+  pool.query('SELECT id FROM offer where name like "'+req.body.search+'" or tag1 like "'+req.body.search+'" or tag2 like "'+req.body.search+'" or tag3 like "'+req.body.search+'" or tag4 like "'+req.body.search+'"',function(error,result){
+    if(error)
+    {
+      console.log(error)
+      return res.status(500).json({RESULT:false})
+    }
+    else
+    {
+      return res.status(200).json(result)
+    }
+  })
+})
+module.exports=router;
