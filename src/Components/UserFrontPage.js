@@ -13,7 +13,7 @@ import AccountCircle from '@material-ui/icons/AccountCircle';
 import MainListItems from './Drawer';
 import Drawer from '@material-ui/core/Drawer';
 import {Link,withRouter} from 'react-router-dom'
-
+import {postData} from './FetchServices'
 
 const useStyles = makeStyles(theme => ({
   grow: {
@@ -126,6 +126,7 @@ const useStyles = makeStyles(theme => ({
 function PrimarySearchAppBar(props) {
   const classes = useStyles();
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [search,setSearch]=React.useState('');
 
   const isMenuOpen = Boolean(anchorEl);
 
@@ -193,6 +194,21 @@ function PrimarySearchAppBar(props) {
     setState({ ...state, [side]: open });
   };
 
+  const handleSearch=async(e)=>{
+    if(e.which==13)
+    {
+      let body={"search":search}
+      let result=await postData('backend/search',body)
+      if(result.length!=0)
+      {
+        props.history.push({pathname:`/SearchResult`,search:`?query=${search}`,state:{id:result[0].id}})
+      }
+      else
+      {
+        props.history.push({pathname:`/SearchResult`,search:`?query=${search}`,state:{id:-1}})
+      }
+    }
+  }
 
   return (
     <div className={classes.grow}>
@@ -221,11 +237,15 @@ function PrimarySearchAppBar(props) {
             </div>
             <InputBase
               placeholder="Search…"
+              value={search}
+              onChange={event=>{setSearch(event.target.value)}}
               classes={{
                 root: classes.inputRoot,
                 input: classes.inputInput,
               }}
               inputProps={{ 'aria-label': 'search' }}
+              onKeyPress={handleSearch}
+              //onKeyDown={handleSearch}
             />
           </div>
           <div className={classes.grow} />
